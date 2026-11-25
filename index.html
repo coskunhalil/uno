@@ -972,6 +972,22 @@
                 turn: 'host',
                 currentColor: firstCard.color,
                 status: 'playing',
+                winner: null,
+                lastActionText: ''
+            };
+
+            broadcastState({ type: 'DEAL' });
+        }
+
+        function refillDeckIfNeeded() {
+            const g = AppState.game;
+            if (g.deck.length === 0 && g.discardPile.length > 1) {
+                const topCard = g.discardPile.pop();
+                g.deck = shuffleArray(g.discardPile.map(c => ({ id: c.id, color: c.color, value: c.value })));
+                g.discardPile = [topCard];
+            }
+        }
+
         function isCardPlayable(card, topCard, currentColor, playerHand = null) {
             if (!card || !topCard) return false;
 
