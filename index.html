@@ -972,29 +972,29 @@
                 turn: 'host',
                 currentColor: firstCard.color,
                 status: 'playing',
-                winner: null,
-                lastActionText: 'Oyun başladı! İyi eğlenceler ❤️'
-            };
-
-            broadcastState({ type: 'DEAL' });
-        }
-
-        function refillDeckIfNeeded() {
-            const g = AppState.game;
-            if (g.deck.length === 0 && g.discardPile.length > 1) {
-                const topCard = g.discardPile.pop();
-                const recycled = g.discardPile.map(c => ({ id: c.id, color: c.color, value: c.value }));
-                g.deck = shuffleArray(recycled);
-                g.discardPile = [topCard];
-            }
-        }
-
-        function isCardPlayable(card, topCard, currentColor) {
+        function isCardPlayable(card, topCard, currentColor, playerHand = null) {
             if (!card || !topCard) return false;
+
+            // +4 kuralı: Oyuncunun elinde yerdeki aktif renkten en az 1 kart varsa oynanamaz
+            if (card.value === 'wild4') {
+                if (Array.isArray(playerHand)) {
+                    const hasMatchingColorCard = playerHand.some(c => c.id !== card.id && c.color === currentColor);
+                    if (hasMatchingColorCard) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
             if (card.color === 'wild') return true;
             if (card.color === currentColor) return true;
             if (card.value === topCard.value) return true;
             return false;
+        }
+
+        function canPlayWild4(card, currentColor, playerHand) {
+            if (!card || card.value !== 'wild4' || !Array.isArray(playerHand)) return true;
+            return !playerHand.some(c => c.id !== card.id && c.color === currentColor);
         }
 
         function processPlayCard(playerRole, cardId, chosenColor = null) {
@@ -1008,7 +1008,7 @@
             const card = hand[cardIdx];
             const topCard = g.discardPile[g.discardPile.length - 1];
 
-            if (!isCardPlayable(card, topCard, g.currentColor)) return;
+            if (!isCardPlayable(card, topCard, g.currentColor, hand)) return;
 
             // Kartı elden çıkar ve masaya koy
             hand.splice(cardIdx, 1);
@@ -1287,7 +1287,7 @@
 
             // 3. Orta Masa (Çekme Destesi, Aktif Renk & Açık Deste)
             els.deckCount.textContent = g.deck.length;
-            const hasPlayableInHand = myHand.some(c => isCardPlayable(c, topCard, g.currentColor));
+            const hasPlayableInHand = myHand.some(c => isCardPlayable(c, topCard, g.currentColor, myHand));
             if (isMyTurn && !hasPlayableInHand) {
                 els.drawPile.classList.add('draw-pile-highlight');
             } else {
@@ -1333,7 +1333,7 @@
             const step = count > 1 ? spreadWidth / (count - 1) : 0;
 
             myHand.forEach((card, idx) => {
-                const playable = isMyTurn && isCardPlayable(card, topCard, g.currentColor);
+                const playable = isMyTurn && isCardPlayable(card, topCard, g.currentColor, myHand);
                 const cEl = createCardElement(card, `player-hand-card ${playable ? 'playable' : 'unplayable'}`);
 
                 const offsetX = count > 1 ? -spreadWidth / 2 + idx * step : 0;
@@ -1357,10 +1357,19 @@
         // --- KART OYNAMA & ÇEKME ETKİLEŞİMLERİ ---
         function onPlayerCardClick(card, playable) {
             const myRole = AppState.isHost ? 'host' : 'guest';
+            const myHand = AppState.game.hands[myRole] || [];
+
             if (AppState.game.status !== 'playing' || AppState.game.turn !== myRole) {
                 showToast(`Şu an sıra ${AppState.oppProfile.name}'de! ⏳`);
                 return;
             }
+
+            if (card.value === 'wild4' && !canPlayWild4(card, AppState.game.currentColor, myHand)) {
+                const activeColorName = getColorTurkish(AppState.game.currentColor);
+                showToast(`Elinde yerdeki ${activeColorName} renginden kart olduğu için +4 kartını şu an oynayamazsın! Önce elindeki uygun kartları değerlendirmelisin.`, 'error');
+                return;
+            }
+
             if (!playable) {
                 showToast('Bu kartı masadaki kartın üzerine atamazsın!', 'error');
                 return;
