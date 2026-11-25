@@ -1,304 +1,1501 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>İkimizin UNO'su ❤️</title>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:linear-gradient(135deg,#17152b,#302044);color:white;font-family:Arial,sans-serif;min-height:100vh;text-align:center}
-header{padding:22px;font-size:25px;font-weight:bold;color:#ffcfdf}
-.panel{background:#ffffff12;border:1px solid #ffffff25;border-radius:18px;padding:22px;margin:18px auto;max-width:520px}
-input{padding:13px;border:0;border-radius:10px;margin:6px;width:90%;max-width:330px;font-size:16px}
-button{border:0;border-radius:10px;padding:12px 18px;margin:5px;background:#ff6292;color:white;font-size:15px;font-weight:bold;cursor:pointer}
-button:disabled{opacity:.4;cursor:not-allowed}
-button:hover{filter:brightness(1.12)}
-#game{display:none}
-#status{font-size:19px;margin:15px}
-#table{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:20px}
-.card{width:65px;height:94px;border:3px solid white;border-radius:11px;color:white;font-size:23px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:2px 4px 8px #0008;cursor:pointer}
-.card:disabled{cursor:default}
-.red{background:#e83e50}.blue{background:#287ce4}
-.green{background:#23a76a}.yellow{background:#e8b82b;color:#222}
-.wild{background:linear-gradient(135deg,#e83e50 25%,#287ce4 25% 50%,#23a76a 50% 75%,#e8b82b 75%)}
-.hand{display:flex;justify-content:center;flex-wrap:wrap;gap:5px;padding:10px}
-.hand .card{width:57px;height:83px;font-size:19px}
-.hand .card:hover{transform:translateY(-10px)}
-.small{color:#c8bdd5;font-size:13px}
-#message{min-height:25px;color:#ffd2e1}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sevgilimle UNO ❤️</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PeerJS -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <!-- Google Fonts: Inter & Fredoka (Oyun başlıkları ve kart rakamları için) -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --card-w: clamp(58px, 14vw, 86px);
+            --card-h: clamp(86px, 21vw, 128px);
+            --opp-card-w: clamp(38px, 9vw, 54px);
+            --opp-card-h: clamp(56px, 13.5vw, 80px);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #160d18;
+            color: #fff;
+            height: 100dvh;
+            width: 100vw;
+        }
+
+        .font-game {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* Romantik Kadife & Ahşap Masa Yüzeyi */
+        .game-table {
+            background: 
+                radial-gradient(circle at 50% 48%, rgba(136, 19, 55, 0.45) 0%, rgba(49, 16, 47, 0.85) 55%, rgba(18, 8, 22, 0.98) 100%),
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 2px, transparent 2px, transparent 6px);
+            box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.85);
+            position: relative;
+        }
+
+        /* Masa Ortası Dekoratif Halka */
+        .table-ring {
+            border: 2px solid rgba(251, 113, 133, 0.18);
+            box-shadow: 0 0 40px rgba(244, 63, 94, 0.12), inset 0 0 30px rgba(244, 63, 94, 0.08);
+        }
+
+        /* UNO Kart Tasarımı */
+        .uno-card {
+            width: var(--card-w);
+            height: var(--card-h);
+            border-radius: 12px;
+            background: #fff;
+            padding: 4px;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0,0,0,0.3);
+            position: relative;
+            transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, filter 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .uno-card-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 9px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Kart Oval Deseni */
+        .uno-card-oval {
+            width: 84%;
+            height: 68%;
+            background: rgba(255, 255, 255, 0.94);
+            border-radius: 50%;
+            transform: rotate(-24deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .uno-card-oval-content {
+            transform: rotate(24deg);
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            font-size: clamp(1.35rem, 3.6vw, 2.1rem);
+            line-height: 1;
+            text-shadow: 1px 2px 0px rgba(0,0,0,0.18);
+        }
+
+        .uno-corner {
+            position: absolute;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            font-size: clamp(0.68rem, 1.8vw, 0.92rem);
+            color: #fff;
+            line-height: 1;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+            z-index: 2;
+        }
+        .uno-corner-tl { top: 4px; left: 5px; }
+        .uno-corner-br { bottom: 4px; right: 5px; transform: rotate(180deg); }
+
+        /* Renk Temaları */
+        .bg-uno-red { background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%); }
+        .text-uno-red { color: #e11d48; }
+
+        .bg-uno-blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+        .text-uno-blue { color: #2563eb; }
+
+        .bg-uno-green { background: linear-gradient(135deg, #10b981 0%, #047857 100%); }
+        .text-uno-green { color: #059669; }
+
+        .bg-uno-yellow { background: linear-gradient(135deg, #facc15 0%, #d97706 100%); }
+        .text-uno-yellow { color: #d97706; }
+
+        .bg-uno-wild {
+            background: conic-gradient(from 45deg, #f43f5e 0deg 90deg, #3b82f6 90deg 180deg, #facc15 180deg 270deg, #10b981 270deg 360deg);
+        }
+
+        /* Kapalı Kart Arkası */
+        .uno-card-back {
+            background: linear-gradient(135deg, #1e1b2e 0%, #0f0c18 100%);
+            border: 1px solid rgba(251, 113, 133, 0.25);
+        }
+        .uno-card-back .uno-card-inner {
+            background: radial-gradient(circle at center, #3b1735 0%, #170d1c 100%);
+        }
+        .uno-back-oval {
+            width: 82%;
+            height: 62%;
+            background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
+            border-radius: 50%;
+            transform: rotate(-24deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #fda4af;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .uno-back-logo {
+            transform: rotate(24deg);
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            font-size: clamp(0.75rem, 2vw, 1.05rem);
+            color: #fff;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Rakip Kapalı Kartları */
+        .opp-card {
+            width: var(--opp-card-w);
+            height: var(--opp-card-h);
+            border-radius: 8px;
+            padding: 3px;
+            transition: all 0.3s ease;
+        }
+        .opp-card .uno-back-logo {
+            font-size: clamp(0.52rem, 1.3vw, 0.72rem);
+        }
+
+        /* Oyuncu Elindeki Kart Etkileşimleri */
+        .player-hand-card {
+            cursor: pointer;
+            transform-origin: bottom center;
+        }
+        .player-hand-card.playable {
+            transform: translateY(-14px);
+            box-shadow: 0 0 18px rgba(251, 113, 133, 0.75), 0 10px 20px rgba(0, 0, 0, 0.55);
+            z-index: 15;
+        }
+        .player-hand-card.playable:hover,
+        .player-hand-card.playable:active {
+            transform: translateY(-24px) scale(1.06);
+            z-index: 30;
+        }
+        .player-hand-card.unplayable {
+            filter: brightness(0.78);
+        }
+
+        /* Sıra Göstergesi Nabız Animasyonu */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 12px rgba(251, 113, 133, 0.45), 0 0 0 2px rgba(251, 113, 133, 0.6); }
+            50% { box-shadow: 0 0 26px rgba(251, 113, 133, 0.95), 0 0 0 4px rgba(251, 113, 133, 0.9); }
+        }
+        .turn-active-badge {
+            animation: pulseGlow 1.8s infinite ease-in-out;
+        }
+
+        /* Çekme Destesi Vurgusu */
+        @keyframes drawPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(250, 204, 21, 0.5); }
+            50% { transform: scale(1.04); box-shadow: 0 0 28px rgba(250, 204, 21, 0.95); }
+        }
+        .draw-pile-highlight {
+            animation: drawPulse 1.5s infinite ease-in-out;
+            cursor: pointer;
+        }
+
+        /* Uçan Kart Klonu */
+        .flying-card {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            transition: transform 0.46s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.46s ease;
+            will-change: transform, left, top;
+        }
+
+        /* Uçan Emoji Tepkileri */
+        @keyframes floatEmoji {
+            0% {
+                transform: translate(-50%, 0) scale(0.5) rotate(-10deg);
+                opacity: 0;
+            }
+            15% {
+                opacity: 1;
+                transform: translate(-50%, -25px) scale(1.25) rotate(8deg);
+            }
+            60% {
+                opacity: 1;
+                transform: translate(-50%, -130px) scale(1.1) rotate(-6deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -230px) scale(0.9) rotate(10deg);
+            }
+        }
+        .floating-reaction {
+            position: fixed;
+            font-size: 2.8rem;
+            z-index: 10000;
+            pointer-events: none;
+            animation: floatEmoji 2.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+        }
+
+        /* Konfeti Parçacıkları */
+        @keyframes confettiFall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0.7; }
+        }
+        .confetti-piece {
+            position: fixed;
+            top: -20px;
+            width: 10px;
+            height: 16px;
+            border-radius: 3px;
+            z-index: 10001;
+            pointer-events: none;
+            animation: confettiFall linear forwards;
+        }
+
+        /* Özel Scrollbar Gizleme */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body>
-<header>❤️ İKİMİZİN UNO'SU ❤️</header>
+<body class="game-table flex flex-col justify-between select-none">
 
-<div id="lobby" class="panel">
-<h2>Birlikte UNO oynayalım!</h2>
-<input id="name" placeholder="Senin ismin">
-<input id="room" placeholder="Oda adı (ör. askimiz123)">
-<div>
-<button onclick="createRoom()">Oda Oluştur</button>
-<button onclick="joinRoom()">Odaya Katıl</button>
-</div>
-<p class="small">Bir kişi oda oluşturur. Diğeri aynı oda adını girerek katılır.</p>
-<p id="connection">Bağlantı bekleniyor...</p>
-</div>
+    <!-- Bildirim Toast Kutusu (alert yerine) -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[11000] flex flex-col items-center gap-2 pointer-events-none w-[90%] max-w-sm"></div>
 
-<div id="game">
-<div class="panel">
-<div id="status">Oyun bekleniyor...</div>
-<div id="message"></div>
-<div id="opponent"></div>
-<div id="table"></div>
-<div class="small">Ortadaki kart</div>
-<button onclick="drawCard()" id="draw">Kart Çek</button>
-</div>
-<div class="panel">
-<h3 id="mytitle">Senin kartların</h3>
-<div id="hand" class="hand"></div>
-<div class="small" id="turn"></div>
-</div>
-<button onclick="startGame()" id="start" style="display:none">Oyunu Başlat 🎮</button>
-</div>
+    <!-- =========================================================
+         1. GİRİŞ & BAĞLANTI LOBİSİ EKRANI
+         ========================================================= -->
+    <div id="lobby-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-md overflow-y-auto">
+        <div class="w-full max-w-md bg-[#231226]/95 border border-rose-500/30 rounded-3xl p-6 shadow-2xl shadow-rose-950/50 my-auto">
+            
+            <!-- Başlık -->
+            <div class="text-center mb-5">
+                <div class="inline-flex items-center justify-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/15 border border-rose-400/30 text-rose-300 text-xs font-semibold mb-2">
+                    <span>❤️ İki Kişilik Romantik Masa</span>
+                </div>
+                <h1 class="font-game text-3xl sm:text-4xl font-bold bg-gradient-to-r from-rose-300 via-pink-200 to-amber-200 bg-clip-text text-transparent">
+                    Sevgilimle UNO
+                </h1>
+                <p class="text-rose-200/70 text-xs sm:text-sm mt-1">UNO demek zorunlu değil, sadece keyfine bak!</p>
+            </div>
 
-<script>
-let peer,conn,host=false,me="",roomId="";
-let state=null;
-let connected=false;
+            <!-- İsim ve Avatar Seçimi -->
+            <div class="space-y-4 mb-5">
+                <div>
+                    <label class="block text-xs font-semibold text-rose-200/80 uppercase tracking-wider mb-1.5">Senin Adın / Lakabın</label>
+                    <input id="player-name-input" type="text" maxlength="16" placeholder="Örn: Aşkım, Prenses, Canım..." 
+                        class="w-full px-4 py-3 rounded-2xl bg-black/40 border border-rose-400/30 text-white placeholder-rose-300/35 focus:outline-none focus:border-rose-400 transition text-sm font-medium">
+                </div>
 
-const $=id=>document.getElementById(id);
-function say(t){$("message").textContent=t}
-function roomKey(){
- return "uno-"+$("room").value.trim().toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,30);
-}
-function setup(){
- me=$("name").value.trim();
- roomId=roomKey();
- if(!me||!roomId){alert("İsim ve oda adı gerekli!");return false}
- return true;
-}
-function createRoom(){
- if(!setup())return;
- host=true;
- $("connection").textContent="Oda oluşturuluyor...";
- peer=new Peer(roomId);
- peer.on("open",()=>{
-  $("connection").textContent="Oda hazır! Sevgilini bekliyorsun ❤️";
- });
- peer.on("connection",c=>{
-  if(conn){c.close();return}
-  conn=c;
-  setupConnection();
- });
- peer.on("error",e=>{
-  $("connection").textContent=e.type==="unavailable-id"?"Bu oda adı kullanımda. Başka bir ad deneyin.": "Bağlantı hatası: "+e.type;
- });
-}
-function joinRoom(){
- if(!setup())return;
- host=false;
- $("connection").textContent="Odaya bağlanılıyor...";
- peer=new Peer();
- peer.on("open",()=>{
-  conn=peer.connect(roomId,{reliable:true});
-  setupConnection();
- });
- peer.on("error",e=>$("connection").textContent="Bağlantı hatası: "+e.type);
-}
-function setupConnection(){
- conn.on("open",()=>{
-  connected=true;
-  conn.send({type:"hello",name:me});
-  $("lobby").style.display="none";
-  $("game").style.display="block";
-  $("connection").textContent="Bağlandı!";
-  if(host) say("Sevgilin bağlandı! Oyunu başlatabilirsin ❤️");
- });
- conn.on("data",msg=>{
-  if(host)hostMessage(msg);
-  else if(msg.type==="state"){
-   state=msg.state;
-   render();
-  }else if(msg.type==="notice")say(msg.text);
- });
- conn.on("close",()=>say("Bağlantı kesildi."));
-}
-function send(obj){if(conn&&connected)conn.send(obj)}
+                <div>
+                    <label class="block text-xs font-semibold text-rose-200/80 uppercase tracking-wider mb-1.5">Avatarını Seç</label>
+                    <div id="avatar-selector" class="grid grid-cols-6 gap-2">
+                        <button type="button" data-avatar="❤️" class="avatar-btn active-avatar text-2xl py-2.5 rounded-2xl bg-rose-500/30 border-2 border-rose-400 transition transform active:scale-95">❤️</button>
+                        <button type="button" data-avatar="🐱" class="avatar-btn text-2xl py-2.5 rounded-2xl bg-black/30 border border-white/10 hover:border-rose-400/50 transition transform active:scale-95">🐱</button>
+                        <button type="button" data-avatar="🧸" class="avatar-btn text-2xl py-2.5 rounded-2xl bg-black/30 border border-white/10 hover:border-rose-400/50 transition transform active:scale-95">🧸</button>
+                        <button type="button" data-avatar="👑" class="avatar-btn text-2xl py-2.5 rounded-2xl bg-black/30 border border-white/10 hover:border-rose-400/50 transition transform active:scale-95">👑</button>
+                        <button type="button" data-avatar="🦊" class="avatar-btn text-2xl py-2.5 rounded-2xl bg-black/30 border border-white/10 hover:border-rose-400/50 transition transform active:scale-95">🦊</button>
+                        <button type="button" data-avatar="🐰" class="avatar-btn text-2xl py-2.5 rounded-2xl bg-black/30 border border-white/10 hover:border-rose-400/50 transition transform active:scale-95">🐰</button>
+                    </div>
+                </div>
+            </div>
 
-function makeDeck(){
- let d=[],id=0;
- const colors=["red","blue","green","yellow"];
- for(let c of colors){
-  d.push({id:id++,color:c,value:"0"});
-  for(let n=1;n<=9;n++)for(let k=0;k<2;k++)d.push({id:id++,color:c,value:String(n)});
-  for(let v of ["+2","Pas","Ters"])for(let k=0;k<2;k++)d.push({id:id++,color:c,value:v});
- }
- for(let i=0;i<4;i++){
-  d.push({id:id++,color:"wild",value:"Renk"});
-  d.push({id:id++,color:"wild",value:"+4"});
- }
- return shuffle(d);
-}
-function shuffle(a){
- for(let i=a.length-1;i>0;i--){
-  let j=Math.floor(Math.random()*(i+1));
-  [a[i],a[j]]=[a[j],a[i]];
- }
- return a;
-}
-function startGame(){
- if(!host||!connected)return;
- let deck=makeDeck();
- state={
-  names:[me,""],hands:[[],[]],deck,discard:[],
-  current:0,direction:1,color:null,over:false
- };
- for(let i=0;i<7;i++){
-  state.hands[0].push(state.deck.pop());
-  state.hands[1].push(state.deck.pop());
- }
- let first=state.deck.pop();
- while(first.color==="wild"){
-  state.deck.unshift(first);
-  first=state.deck.pop();
- }
- state.discard.push(first);
- state.color=first.color;
- publish();
-}
-function hostMessage(m){
- if(m.type==="hello"){
-  state=state||null;
-  if(state)state.names[1]=m.name;
-  else waitingName=m.name;
-  if(state)publish();
-  else say(m.name+" bağlandı! Oyunu başlatabilirsin ❤️");
- }
- if(m.type==="action"&&state&&!state.over){
-  if(state.names[1]!==null && m.player===1)action(1,m.action,m.card,m.color);
- }
-}
-let waitingName="";
-function publish(){
- if(!state)return;
- let s=state;
- if(conn){
-  conn.send({type:"state",state:privateState(1)});
- }
- render();
-}
-function privateState(player){
- return {
-  names:state.names,
-  hand:state.hands[player],
-  opponentCount:state.hands[1-player].length,
-  top:state.discard[state.discard.length-1],
-  current:state.current,color:state.color,
-  over:state.over,winner:state.winner,
-  deckCount:state.deck.length
- };
-}
-function action(player,kind,cardId,color){
- if(!host)return;
- if(state.over||state.current!==player)return;
- let hand=state.hands[player];
- if(kind==="draw"){
-  if(!state.deck.length)reshuffle();
-  if(state.deck.length)hand.push(state.deck.pop());
-  state.current=1-player;
-  say(state.names[player]+" kart çekti.");
-  publish();
-  return;
- }
- let i=hand.findIndex(c=>c.id===cardId);
- if(i<0)return;
- let card=hand[i],top=state.discard[state.discard.length-1];
- if(card.color!=="wild"&&card.color!==state.color&&card.value!==top.value)return;
- if(card.color==="wild"&&!["red","blue","green","yellow"].includes(color))return;
- hand.splice(i,1);
- state.discard.push(card);
- state.color=card.color==="wild"?color:card.color;
- let next=1-player;
- if(card.value==="+2"||card.value==="+4"){
-  let count=card.value==="+2"?2:4;
-  for(let j=0;j<count;j++){
-   if(!state.deck.length)reshuffle();
-   if(state.deck.length)state.hands[next].push(state.deck.pop());
-  }
-  say(state.names[player]+" "+card.value+" oynadı!");
- }else if(card.value==="Pas"||card.value==="Ters"){
-  say(state.names[player]+" "+card.value+" oynadı!");
- }else{
-  say(state.names[player]+" kart oynadı.");
-  state.current=next;
- }
- if(card.color==="wild")say("Yeni renk: "+color);
- if(hand.length===0){
-  state.over=true;
-  state.winner=state.names[player];
-  say("🎉 "+state.winner+" kazandı!");
- }
- publish();
-}
-function reshuffle(){
- if(state.discard.length<=1)return;
- let top=state.discard.pop();
- state.deck=shuffle(state.discard);
- state.discard=[top];
-}
-function play(id){
- if(!state||state.over)return;
- if(host){
-  if(state.current!==0)return;
-  let c=state.hands[0].find(x=>x.id===id);
-  if(!c)return;
-  let color=c.color==="wild"?prompt("Renk seç: red, blue, green, yellow","red"):null;
-  if(c.color==="wild"&&!["red","blue","green","yellow"].includes(color))return;
-  action(0,"play",id,color);
- }else{
-  let c=state.hand.find(x=>x.id===id);
-  if(!c)return;
-  let color=c.color==="wild"?prompt("Renk seç: red, blue, green, yellow","red"):null;
-  if(c.color==="wild"&&!["red","blue","green","yellow"].includes(color))return;
-  send({type:"action",player:1,action:"play",card:id,color});
- }
-}
-function drawCard(){
- if(!state||state.over)return;
- if(host){
-  if(state.current===0)action(0,"draw");
- }else send({type:"action",player:1,action:"draw"});
-}
-function render(){
- if(!state)return;
- let hand=host?state.hands[0]:state.hand;
- let current=state.current;
- $("status").textContent=state.over?
-  "🏆 "+state.winner+" kazandı!":
-  (current===(host?0:1)?"Sıra sende! 🎮":"Rakibinin sırası...");
- $("opponent").textContent=
-  (host?state.names[1]:state.names[0])+" · "+(host?state.hands[1].length:state.opponentCount)+" kart";
- let top=host?state.discard[state.discard.length-1]:state.top;
- if(!top)return;
- $("table").innerHTML="";
- let el=document.createElement("div");
- el.className="card "+(top.color==="wild"?"wild":top.color);
- el.textContent=top.value;
- $("table").appendChild(el);
- $("table").insertAdjacentHTML("beforeend","<div style='width:100%;font-size:14px'>Aktif renk: "+state.color+"</div>");
- $("hand").innerHTML="";
- hand.forEach(c=>{
-  let b=document.createElement("button");
-  b.className="card "+(c.color==="wild"?"wild":c.color);
-  b.textContent=c.value;
-  b.disabled=state.over||current!==(host?0:1);
-  b.onclick=()=>play(c.id);
-  $("hand").appendChild(b);
- });
- $("turn").textContent="Kart sayın: "+hand.length+" | UNO demek zorunda değilsin ❤️";
- $("draw").disabled=state.over||current!==(host?0:1);
-}
-</script>
+            <!-- Bağlantı Seçenekleri (Başlangıç Görünümü) -->
+            <div id="connection-actions" class="space-y-3">
+                <button id="btn-create-room" type="button"
+                    class="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-bold text-base shadow-lg shadow-rose-600/30 transition transform active:scale-[0.98] flex items-center justify-center gap-2">
+                    <span>✨ Yeni Oda Kur</span>
+                </button>
+
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-rose-300/15"></div>
+                    <span class="flex-shrink mx-3 text-xs text-rose-300/50 font-medium">VEYA SEVGİLİNİN ODASINA GİR</span>
+                    <div class="flex-grow border-t border-rose-300/15"></div>
+                </div>
+
+                <div class="flex gap-2">
+                    <input id="join-code-input" type="text" maxlength="6" placeholder="ODA KODU" 
+                        class="w-1/2 px-4 py-3 rounded-2xl bg-black/40 border border-rose-400/30 text-white text-center font-game tracking-widest uppercase placeholder-rose-300/35 focus:outline-none focus:border-rose-400 text-base">
+                    <button id="btn-join-room" type="button"
+                        class="w-1/2 py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-rose-300/30 text-rose-100 font-bold text-sm transition transform active:scale-[0.98]">
+                        Odaya Katıl 💌
+                    </button>
+                </div>
+            </div>
+
+            <!-- Oda Kuruldu / Bekleniyor Paneli -->
+            <div id="waiting-room-panel" class="hidden mt-4 p-4 rounded-2xl bg-black/40 border border-rose-400/30 text-center space-y-3">
+                <div class="flex items-center justify-center gap-2 text-amber-300 text-xs font-semibold">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                    <span id="connection-status-text">Sevgilinin bağlanması bekleniyor...</span>
+                </div>
+
+                <div>
+                    <p class="text-xs text-rose-200/70 mb-1">Bu kodu sevgiline gönder:</p>
+                    <div class="flex items-center justify-center gap-2">
+                        <span id="display-room-code" class="font-game text-3xl tracking-[0.2em] text-rose-300 bg-rose-950/60 px-4 py-1.5 rounded-xl border border-rose-400/30">------</span>
+                        <button id="btn-copy-code" type="button" title="Kodu Kopyala"
+                            class="p-3 rounded-xl bg-rose-500/25 hover:bg-rose-500/40 border border-rose-400/40 text-rose-100 transition active:scale-95">
+                            📋
+                        </button>
+                    </div>
+                </div>
+
+                <button id="btn-cancel-wait" type="button" class="text-xs text-rose-300/60 hover:text-rose-200 underline pt-1">
+                    İptal Et / Geri Dön
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         2. ANA OYUN MASASI (ÜST - ORTA - ALT)
+         ========================================================= -->
+    
+    <!-- ÜST KISIM: SEVGİLİ (RAKİP) ALANI -->
+    <header class="w-full pt-2.5 pb-1 px-3 flex flex-col items-center z-20 relative">
+        <!-- Üst Bilgi Çubuğu (Bağlantı Durumu & Ses/Ayar) -->
+        <div class="w-full max-w-3xl flex items-center justify-between mb-1.5 px-1">
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/35 border border-white/10 text-[11px] font-medium">
+                <span id="net-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span id="net-label" class="text-rose-100/80">Bağlı</span>
+            </div>
+
+            <div id="turn-banner" class="px-3.5 py-1 rounded-full bg-rose-500/20 border border-rose-400/35 text-xs font-bold text-rose-200 tracking-wide">
+                Oyun Hazırlanıyor...
+            </div>
+
+            <button id="btn-sound-toggle" type="button" class="px-2.5 py-1 rounded-full bg-black/35 border border-white/10 text-xs hover:bg-white/10 transition" title="Ses Efektleri">
+                🔊
+            </button>
+        </div>
+
+        <!-- Sevgili Profil Kartı -->
+        <div id="opponent-profile-box" class="flex items-center gap-2.5 px-4 py-1.5 rounded-2xl bg-black/40 border border-white/10 transition-all duration-300">
+            <div id="opp-avatar" class="text-2xl sm:text-3xl bg-rose-500/20 w-10 h-10 rounded-full flex items-center justify-center border border-rose-300/30">
+                ❤️
+            </div>
+            <div class="text-left">
+                <div class="flex items-center gap-2">
+                    <span id="opp-name" class="font-bold text-sm sm:text-base text-rose-100">Sevgilim</span>
+                    <span id="opp-last-card-badge" class="hidden px-2 py-0.5 rounded-full bg-amber-400 text-black font-bold text-[10px] animate-bounce">
+                        Son 1 kart! 💖
+                    </span>
+                </div>
+                <div class="text-[11px] text-rose-200/70">
+                    Elindeki kart: <span id="opp-card-count" class="font-bold text-white">7</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sevgilinin Kapalı Kart Yelpazesi -->
+        <div id="opponent-hand" class="flex items-center justify-center mt-2 h-[64px] sm:h-[82px] min-w-[140px]">
+            <!-- JS ile doldurulacak -->
+        </div>
+    </header>
+
+    <!-- ORTA KISIM: OYUN MASASI (ÇEKME & ATMA DESTESİ) -->
+    <main class="flex-1 flex items-center justify-center relative px-4 z-10">
+        <!-- Dekoratif Masa Ortası Halkası -->
+        <div class="table-ring w-[290px] h-[185px] sm:w-[380px] sm:h-[225px] rounded-[999px] flex items-center justify-center gap-6 sm:gap-10 relative">
+            
+            <!-- Aktif Renk Göstergesi (Masanın ortasında parlayan halka/etiket) -->
+            <div id="active-color-pill" class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-md border border-white/30 bg-rose-600 text-white transition-colors duration-300">
+                Renk: Kırmızı
+            </div>
+
+            <!-- Kapalı Çekme Destesi (Draw Pile) -->
+            <div class="flex flex-col items-center gap-1.5">
+                <div id="draw-pile" class="uno-card uno-card-back relative group transition-transform active:scale-95">
+                    <!-- Alt kart derinlik efekti -->
+                    <div class="absolute inset-0 translate-x-1 translate-y-1 rounded-xl bg-black/50 -z-10"></div>
+                    <div class="uno-card-inner">
+                        <div class="uno-back-oval">
+                            <span class="uno-back-logo">UNO</span>
+                        </div>
+                    </div>
+                </div>
+                <span class="text-[11px] font-semibold text-rose-200/75">Kart Çek (<span id="deck-count">0</span>)</span>
+            </div>
+
+            <!-- Açık Atılan Kart Destesi (Discard Pile) -->
+            <div class="flex flex-col items-center gap-1.5">
+                <div id="discard-pile" class="relative w-[var(--card-w)] h-[var(--card-h)] flex items-center justify-center">
+                    <!-- Atılan kartlar buraya üst üste yığılacak -->
+                </div>
+                <span class="text-[11px] font-semibold text-rose-200/75">Masa</span>
+            </div>
+
+            <!-- +2 / +4 veya Pas Geç Bilgi Balonu -->
+            <div id="action-callout" class="hidden absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full bg-amber-400 text-black font-game text-xs font-bold shadow-lg">
+                +2 Kart Çekti!
+            </div>
+        </div>
+
+        <!-- Sağ Alt Köşe: Mini Emoji Tepki Butonları -->
+        <div class="fixed right-3 bottom-[148px] sm:bottom-[175px] z-30 flex flex-col gap-2 bg-black/45 backdrop-blur-md p-1.5 rounded-2xl border border-rose-400/25 shadow-lg">
+            <button type="button" data-emoji="❤️" class="reaction-btn text-xl sm:text-2xl p-1.5 hover:scale-125 active:scale-90 transition">❤️</button>
+            <button type="button" data-emoji="😂" class="reaction-btn text-xl sm:text-2xl p-1.5 hover:scale-125 active:scale-90 transition">😂</button>
+            <button type="button" data-emoji="😱" class="reaction-btn text-xl sm:text-2xl p-1.5 hover:scale-125 active:scale-90 transition">😱</button>
+            <button type="button" data-emoji="😘" class="reaction-btn text-xl sm:text-2xl p-1.5 hover:scale-125 active:scale-90 transition">😘</button>
+        </div>
+    </main>
+
+    <!-- ALT KISIM: OYUNCUNUN KENDİ ELİ -->
+    <footer class="w-full pb-3 pt-1 px-2 flex flex-col items-center z-20 relative">
+        <!-- Oyuncu Bilgi Rozeti -->
+        <div id="my-profile-box" class="flex items-center gap-2 px-3.5 py-1 rounded-full bg-black/45 border border-white/10 mb-2 transition-all duration-300">
+            <span id="my-avatar" class="text-base">❤️</span>
+            <span id="my-name" class="text-xs font-bold text-white">Ben</span>
+            <span id="my-last-card-badge" class="hidden px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-amber-500 text-white font-bold text-[10px] animate-pulse">
+                Son 1 kart! ✨
+            </span>
+        </div>
+
+        <!-- Oyuncu Kart Yelpazesi Container -->
+        <div id="player-hand-wrapper" class="w-full max-w-4xl flex items-end justify-center h-[112px] sm:h-[146px] px-4 overflow-visible">
+            <div id="player-hand" class="flex items-end justify-center relative">
+                <!-- JS ile kartlar dizilecek -->
+            </div>
+        </div>
+    </footer>
+
+    <!-- =========================================================
+         3. JOKER RENK SEÇİM MODALI
+         ========================================================= -->
+    <div id="color-picker-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-[#261329] border border-rose-400/40 rounded-3xl p-6 max-w-xs w-full text-center shadow-2xl transform transition-all">
+            <h3 class="font-game text-xl font-bold text-rose-100 mb-1">Bir Renk Seç 🎨</h3>
+            <p class="text-xs text-rose-200/70 mb-5">Oyunun devam edeceği rengi belirle</p>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <button type="button" data-pick-color="red" class="color-choice-btn py-4 rounded-2xl bg-uno-red font-game font-bold text-white shadow-lg hover:brightness-110 active:scale-95 transition border-2 border-white/30">
+                    Kırmızı
+                </button>
+                <button type="button" data-pick-color="blue" class="color-choice-btn py-4 rounded-2xl bg-uno-blue font-game font-bold text-white shadow-lg hover:brightness-110 active:scale-95 transition border-2 border-white/30">
+                    Mavi
+                </button>
+                <button type="button" data-pick-color="green" class="color-choice-btn py-4 rounded-2xl bg-uno-green font-game font-bold text-white shadow-lg hover:brightness-110 active:scale-95 transition border-2 border-white/30">
+                    Yeşil
+                </button>
+                <button type="button" data-pick-color="yellow" class="color-choice-btn py-4 rounded-2xl bg-uno-yellow font-game font-bold text-white shadow-lg hover:brightness-110 active:scale-95 transition border-2 border-white/30">
+                    Sarı
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         4. OYUN SONU / RÖVANŞ MODALI
+         ========================================================= -->
+    <div id="game-over-modal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-gradient-to-b from-[#2e1632] to-[#1b0d1e] border border-rose-400/40 rounded-3xl p-7 max-w-sm w-full text-center shadow-2xl">
+            <div id="winner-emoji" class="text-6xl mb-3 animate-bounce">🏆</div>
+            <h2 id="winner-title" class="font-game text-2xl sm:text-3xl font-bold text-rose-200 mb-2">Tebrikler Aşkım!</h2>
+            <p id="winner-subtitle" class="text-sm text-rose-100/80 mb-6">Harika bir eldi, kazanan belli oldu!</p>
+            
+            <div class="bg-black/35 rounded-2xl p-3 mb-6 flex justify-around text-xs border border-white/10">
+                <div>
+                    <div class="text-rose-300/70">Senin Galibiyetin</div>
+                    <div id="my-score-text" class="font-game text-xl text-white mt-0.5">0</div>
+                </div>
+                <div class="border-l border-white/10"></div>
+                <div>
+                    <div id="opp-score-label" class="text-rose-300/70">Sevgilin</div>
+                    <div id="opp-score-text" class="font-game text-xl text-white mt-0.5">0</div>
+                </div>
+            </div>
+
+            <button id="btn-play-again" type="button"
+                class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-bold text-base shadow-lg shadow-rose-600/30 transition transform active:scale-95">
+                Tekrar Oyna 💕
+            </button>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         5. JAVASCRIPT OYUN MOTORU & PEERJS MANTIĞI
+         ========================================================= -->
+    <script>
+        /**
+         * SEVGİLİMLE UNO - P2P (PeerJS) İki Kişilik UNO Oyun Motoru
+         * Mimari: Host (Oda Kuran) tek oyun otoritesidir. Tüm deste karıştırma,
+         * kural doğrulama ve el dağıtımı Host üzerinde çalışır ve Guest'e senkronize edilir.
+         */
+
+        // --- SES EFEKTLERİ (Web Audio API - Harici dosya gerektirmez) ---
+        const SoundFX = (() => {
+            let ctx = null;
+            let enabled = true;
+
+            function init() {
+                if (!ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) ctx = new AudioCtx();
+                }
+                if (ctx && ctx.state === 'suspended') ctx.resume();
+            }
+
+            function playTone(freq, type, duration, vol = 0.12, delay = 0) {
+                if (!enabled) return;
+                init();
+                if (!ctx) return;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+                gain.gain.setValueAtTime(vol, ctx.currentTime + delay);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + delay);
+                osc.stop(ctx.currentTime + delay + duration);
+            }
+
+            return {
+                toggle() {
+                    enabled = !enabled;
+                    return enabled;
+                },
+                isEnabled() { return enabled; },
+                cardSlide() {
+                    playTone(320, 'triangle', 0.12, 0.1);
+                    playTone(480, 'sine', 0.1, 0.08, 0.04);
+                },
+                cardPlay() {
+                    playTone(520, 'sine', 0.14, 0.14);
+                    playTone(680, 'triangle', 0.16, 0.12, 0.05);
+                },
+                emojiPop() {
+                    playTone(600, 'sine', 0.12, 0.1);
+                    playTone(880, 'sine', 0.18, 0.1, 0.07);
+                },
+                winFanfare() {
+                    [523.25, 659.25, 783.99, 1046.50].forEach((f, idx) => {
+                        playTone(f, 'triangle', 0.35, 0.15, idx * 0.12);
+                    });
+                }
+            };
+        })();
+
+        // --- UYGULAMA DURUMU (STATE) ---
+        const AppState = {
+            peer: null,
+            conn: null,
+            isHost: false,
+            roomCode: '',
+            myProfile: { name: 'Aşkım', avatar: '❤️' },
+            oppProfile: { name: 'Sevgilim', avatar: '🧸' },
+            scores: { host: 0, guest: 0 },
+            pendingWildCardIndex: null,
+            // Host otorite oyun durumu
+            game: {
+                deck: [],
+                discardPile: [], // { id, color, value, angle }
+                hands: { host: [], guest: [] },
+                turn: 'host', // 'host' veya 'guest'
+                currentColor: 'red',
+                status: 'waiting', // 'waiting', 'playing', 'gameover'
+                winner: null,
+                lastActionText: ''
+            }
+        };
+
+        // --- DOM ELEMANLARI ---
+        const els = {
+            lobbyScreen: document.getElementById('lobby-screen'),
+            playerNameInput: document.getElementById('player-name-input'),
+            avatarBtns: document.querySelectorAll('.avatar-btn'),
+            connectionActions: document.getElementById('connection-actions'),
+            waitingRoomPanel: document.getElementById('waiting-room-panel'),
+            connectionStatusText: document.getElementById('connection-status-text'),
+            displayRoomCode: document.getElementById('display-room-code'),
+            joinCodeInput: document.getElementById('join-code-input'),
+            btnCreateRoom: document.getElementById('btn-create-room'),
+            btnJoinRoom: document.getElementById('btn-join-room'),
+            btnCopyCode: document.getElementById('btn-copy-code'),
+            btnCancelWait: document.getElementById('btn-cancel-wait'),
+            btnSoundToggle: document.getElementById('btn-sound-toggle'),
+
+            netDot: document.getElementById('net-dot'),
+            netLabel: document.getElementById('net-label'),
+            turnBanner: document.getElementById('turn-banner'),
+            opponentProfileBox: document.getElementById('opponent-profile-box'),
+            oppAvatar: document.getElementById('opp-avatar'),
+            oppName: document.getElementById('opp-name'),
+            oppCardCount: document.getElementById('opp-card-count'),
+            oppLastCardBadge: document.getElementById('opp-last-card-badge'),
+            opponentHand: document.getElementById('opponent-hand'),
+
+            activeColorPill: document.getElementById('active-color-pill'),
+            drawPile: document.getElementById('draw-pile'),
+            deckCount: document.getElementById('deck-count'),
+            discardPile: document.getElementById('discard-pile'),
+            actionCallout: document.getElementById('action-callout'),
+
+            myProfileBox: document.getElementById('my-profile-box'),
+            myAvatar: document.getElementById('my-avatar'),
+            myName: document.getElementById('my-name'),
+            myLastCardBadge: document.getElementById('my-last-card-badge'),
+            playerHand: document.getElementById('player-hand'),
+
+            colorPickerModal: document.getElementById('color-picker-modal'),
+            gameOverModal: document.getElementById('game-over-modal'),
+            winnerEmoji: document.getElementById('winner-emoji'),
+            winnerTitle: document.getElementById('winner-title'),
+            winnerSubtitle: document.getElementById('winner-subtitle'),
+            myScoreText: document.getElementById('my-score-text'),
+            oppScoreLabel: document.getElementById('opp-score-label'),
+            oppScoreText: document.getElementById('opp-score-text'),
+            btnPlayAgain: document.getElementById('btn-play-again')
+        };
+
+        // --- YARDIMCI BİLDİRİM FONKSİYONU (Toast) ---
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'error' ? 'bg-red-600/95 border-red-300/40' : 'bg-[#2c1530]/95 border-rose-400/40';
+            toast.className = `${bgClass} border text-white text-xs sm:text-sm font-medium px-4 py-2.5 rounded-2xl shadow-xl backdrop-blur-md transition-all duration-300 transform -translate-y-2 opacity-0 text-center`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('-translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('-translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 2800);
+        }
+
+        // --- AVATAR & İSİM SEÇİMİ ---
+        els.avatarBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                els.avatarBtns.forEach(b => {
+                    b.classList.remove('active-avatar', 'bg-rose-500/30', 'border-2', 'border-rose-400');
+                    b.classList.add('bg-black/30', 'border', 'border-white/10');
+                });
+                btn.classList.add('active-avatar', 'bg-rose-500/30', 'border-2', 'border-rose-400');
+                btn.classList.remove('bg-black/30', 'border', 'border-white/10');
+                AppState.myProfile.avatar = btn.dataset.avatar;
+            });
+        });
+
+        function syncLocalProfileInputs() {
+            const rawName = els.playerNameInput.value.trim();
+            AppState.myProfile.name = rawName || (AppState.isHost ? 'Aşkım' : 'Sevgilim');
+            els.myName.textContent = AppState.myProfile.name;
+            els.myAvatar.textContent = AppState.myProfile.avatar;
+        }
+
+        // --- KISA ODA KODU ÜRETİCİ (5 Haneli Okunabilir Kod) ---
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 0, O, 1, I hariç
+            let code = '';
+            for (let i = 0; i < 5; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        const PEER_PREFIX = 'uno-love-room-';
+
+        // --- PEERJS BAĞLANTI YÖNETİMİ ---
+        function cleanupPeer() {
+            if (AppState.conn) {
+                try { AppState.conn.close(); } catch (e) {}
+                AppState.conn = null;
+            }
+            if (AppState.peer) {
+                try { AppState.peer.destroy(); } catch (e) {}
+                AppState.peer = null;
+            }
+        }
+
+        // Oda Kur (Host)
+        els.btnCreateRoom.addEventListener('click', () => {
+            syncLocalProfileInputs();
+            cleanupPeer();
+            AppState.isHost = true;
+            AppState.roomCode = generateRoomCode();
+
+            els.connectionActions.classList.add('hidden');
+            els.waitingRoomPanel.classList.remove('hidden');
+            els.displayRoomCode.textContent = AppState.roomCode;
+            els.connectionStatusText.textContent = 'Oda oluşturuluyor...';
+
+            const peerId = PEER_PREFIX + AppState.roomCode;
+            AppState.peer = new Peer(peerId);
+
+            AppState.peer.on('open', () => {
+                els.connectionStatusText.textContent = 'Sevgilinin bağlanması bekleniyor...';
+            });
+
+            AppState.peer.on('connection', (conn) => {
+                if (AppState.conn && AppState.conn.open) {
+                    conn.close(); // Sadece 2 kişilik oda
+                    return;
+                }
+                AppState.conn = conn;
+                setupConnectionHandlers();
+            });
+
+            AppState.peer.on('error', (err) => {
+                console.error('Peer error:', err);
+                showToast('Bağlantı hatası oluştu, tekrar deneniyor...', 'error');
+                resetLobbyUI();
+            });
+        });
+
+        // Odaya Katıl (Guest)
+        els.btnJoinRoom.addEventListener('click', () => {
+            const code = els.joinCodeInput.value.trim().toUpperCase();
+            if (code.length < 4) {
+                showToast('Lütfen sevgilinin verdiği oda kodunu gir!', 'error');
+                return;
+            }
+
+            syncLocalProfileInputs();
+            cleanupPeer();
+            AppState.isHost = false;
+            AppState.roomCode = code;
+
+            els.connectionActions.classList.add('hidden');
+            els.waitingRoomPanel.classList.remove('hidden');
+            els.displayRoomCode.textContent = code;
+            els.connectionStatusText.textContent = 'Sevgilinin odasına bağlanılıyor...';
+
+            AppState.peer = new Peer();
+
+            AppState.peer.on('open', () => {
+                const targetId = PEER_PREFIX + code;
+                AppState.conn = AppState.peer.connect(targetId, { reliable: true });
+                setupConnectionHandlers();
+            });
+
+            AppState.peer.on('error', (err) => {
+                console.error('Peer join error:', err);
+                showToast('Oda bulunamadı! Kodu kontrol edip tekrar dene.', 'error');
+                resetLobbyUI();
+            });
+        });
+
+        // Kodu Kopyala (iFrame uyumlu execCommand + fallback)
+        els.btnCopyCode.addEventListener('click', () => {
+            const code = AppState.roomCode;
+            const tempInput = document.createElement('input');
+            tempInput.value = code;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast(`Oda kodu kopyalandı: ${code} 📋`);
+            } catch (e) {
+                showToast(`Oda Kodu: ${code}`);
+            }
+            document.body.removeChild(tempInput);
+        });
+
+        els.btnCancelWait.addEventListener('click', () => {
+            cleanupPeer();
+            resetLobbyUI();
+        });
+
+        function resetLobbyUI() {
+            els.waitingRoomPanel.classList.add('hidden');
+            els.connectionActions.classList.remove('hidden');
+            els.lobbyScreen.classList.remove('hidden');
+        }
+
+        function setNetworkStatus(connected) {
+            if (connected) {
+                els.netDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+                els.netLabel.textContent = 'Bağlı';
+            } else {
+                els.netDot.className = 'w-2 h-2 rounded-full bg-rose-500 animate-ping';
+                els.netLabel.textContent = 'Bağlantı Koptu';
+            }
+        }
+
+        // --- VERİ İLETİŞİMİ PROTOKOLÜ ---
+        function sendMessage(payload) {
+            if (AppState.conn && AppState.conn.open) {
+                AppState.conn.send(payload);
+            }
+        }
+
+        function setupConnectionHandlers() {
+            const conn = AppState.conn;
+
+            conn.on('open', () => {
+                setNetworkStatus(true);
+                // Profil bilgisini gönder
+                sendMessage({
+                    type: 'HELLO',
+                    profile: AppState.myProfile
+                });
+            });
+
+            conn.on('data', (data) => {
+                handleIncomingMessage(data);
+            });
+
+            conn.on('close', () => {
+                setNetworkStatus(false);
+                showToast('Sevgilinle bağlantı koptu! 💔', 'error');
+                setTimeout(() => {
+                    resetLobbyUI();
+                }, 1800);
+            });
+
+            conn.on('error', () => {
+                setNetworkStatus(false);
+                showToast('Bağlantıda bir sorun oluştu.', 'error');
+            });
+        }
+
+        function handleIncomingMessage(data) {
+            switch (data.type) {
+                case 'HELLO':
+                    AppState.oppProfile = data.profile;
+                    els.oppName.textContent = AppState.oppProfile.name;
+                    els.oppAvatar.textContent = AppState.oppProfile.avatar;
+                    els.oppScoreLabel.textContent = AppState.oppProfile.name;
+                    els.lobbyScreen.classList.add('hidden');
+                    showToast(`${AppState.oppProfile.name} masaya oturdu! 💕`);
+
+                    // Host ise oyunu başlat ve dağıt
+                    if (AppState.isHost) {
+                        startNewGameHost();
+                    }
+                    break;
+
+                case 'STATE_SYNC':
+                    // Guest veya Host ekran güncellemesi + Animasyon tetikleme
+                    applySyncedState(data);
+                    break;
+
+                case 'ACTION_PLAY_CARD':
+                    // Sadece Host işler
+                    if (AppState.isHost) {
+                        processPlayCard('guest', data.cardId, data.chosenColor);
+                    }
+                    break;
+
+                case 'ACTION_DRAW_CARD':
+                    // Sadece Host işler
+                    if (AppState.isHost) {
+                        processDrawCard('guest');
+                    }
+                    break;
+
+                case 'ACTION_RESTART':
+                    if (AppState.isHost) {
+                        startNewGameHost();
+                    }
+                    break;
+
+                case 'REACTION':
+                    SoundFX.emojiPop();
+                    spawnFloatingEmoji(data.emoji, true);
+                    break;
+            }
+        }
+
+        // --- STANDART 108 KARTLIK UNO DESTESİ OLUŞTURMA ---
+        function buildUnoDeck() {
+            const colors = ['red', 'blue', 'green', 'yellow'];
+            const deck = [];
+            let uid = 1;
+
+            colors.forEach(color => {
+                // Her renkten 1 adet 0
+                deck.push({ id: `c_${uid++}`, color, value: '0' });
+
+                // Her renkten 2'şer adet 1-9 ve aksiyon kartları
+                const values = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'skip', 'reverse', 'draw2'];
+                values.forEach(val => {
+                    deck.push({ id: `c_${uid++}`, color, value: val });
+                    deck.push({ id: `c_${uid++}`, color, value: val });
+                });
+            });
+
+            // 4 adet Renk Değiştir (wild) ve 4 adet +4 (wild4)
+            for (let i = 0; i < 4; i++) {
+                deck.push({ id: `c_${uid++}`, color: 'wild', value: 'wild' });
+                deck.push({ id: `c_${uid++}`, color: 'wild', value: 'wild4' });
+            }
+
+            return shuffleArray(deck);
+        }
+
+        function shuffleArray(arr) {
+            const a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        // --- HOST OYUN BAŞLATMA & KURAL MOTORU ---
+        function startNewGameHost() {
+            const deck = buildUnoDeck();
+            const hostHand = deck.splice(0, 7);
+            const guestHand = deck.splice(0, 7);
+
+            // İlk açılan kart siyah joker olmasın, düzgün bir başlangıç kartı seçelim
+            let firstCardIndex = deck.findIndex(c => c.color !== 'wild');
+            if (firstCardIndex === -1) firstCardIndex = 0;
+            const firstCard = deck.splice(firstCardIndex, 1)[0];
+            firstCard.angle = Math.floor(Math.random() * 13) - 6;
+
+            AppState.game = {
+                deck,
+                discardPile: [firstCard],
+                hands: {
+                    host: hostHand,
+                    guest: guestHand
+                },
+                turn: 'host',
+                currentColor: firstCard.color,
+                status: 'playing',
+                winner: null,
+                lastActionText: 'Oyun başladı! İyi eğlenceler ❤️'
+            };
+
+            broadcastState({ type: 'DEAL' });
+        }
+
+        function refillDeckIfNeeded() {
+            const g = AppState.game;
+            if (g.deck.length === 0 && g.discardPile.length > 1) {
+                const topCard = g.discardPile.pop();
+                const recycled = g.discardPile.map(c => ({ id: c.id, color: c.color, value: c.value }));
+                g.deck = shuffleArray(recycled);
+                g.discardPile = [topCard];
+            }
+        }
+
+        function isCardPlayable(card, topCard, currentColor) {
+            if (!card || !topCard) return false;
+            if (card.color === 'wild') return true;
+            if (card.color === currentColor) return true;
+            if (card.value === topCard.value) return true;
+            return false;
+        }
+
+        function processPlayCard(playerRole, cardId, chosenColor = null) {
+            const g = AppState.game;
+            if (g.status !== 'playing' || g.turn !== playerRole) return;
+
+            const hand = g.hands[playerRole];
+            const cardIdx = hand.findIndex(c => c.id === cardId);
+            if (cardIdx === -1) return;
+
+            const card = hand[cardIdx];
+            const topCard = g.discardPile[g.discardPile.length - 1];
+
+            if (!isCardPlayable(card, topCard, g.currentColor)) return;
+
+            // Kartı elden çıkar ve masaya koy
+            hand.splice(cardIdx, 1);
+            const playedCard = {
+                ...card,
+                angle: Math.floor(Math.random() * 17) - 8 // -8° ile +8° arası rastgele açı
+            };
+            g.discardPile.push(playedCard);
+
+            // Aktif rengi güncelle
+            if (card.color === 'wild') {
+                g.currentColor = chosenColor || 'red';
+            } else {
+                g.currentColor = card.color;
+            }
+
+            const opponentRole = playerRole === 'host' ? 'guest' : 'host';
+            const actorName = playerRole === 'host' ? AppState.myProfile.name : AppState.oppProfile.name;
+            let nextTurn = opponentRole;
+            let actionText = '';
+
+            // Özel Kart Etkileri (2 Kişilik UNO Kuralları)
+            if (card.value === 'skip' || card.value === 'reverse') {
+                // 2 kişilik oyunda Pas Geç ve Yön Değiştir rakibi atlar, sıra tekrar oynayanda kalır
+                nextTurn = playerRole;
+                actionText = card.value === 'skip'
+                    ? `${actorName} Pas Geç attı! Sıra yine onda 🔄`
+                    : `${actorName} Yön Değiştirdi! Sıra yine onda 🔄`;
+            } else if (card.value === 'draw2') {
+                drawCardsForPlayer(opponentRole, 2);
+                nextTurn = playerRole; // Rakip 2 kart çeker ve turunu kaybeder
+                actionText = `${actorName} +2 attı! Rakip 2 kart çekti 😱`;
+            } else if (card.value === 'wild4') {
+                drawCardsForPlayer(opponentRole, 4);
+                nextTurn = playerRole; // Rakip 4 kart çeker ve turunu kaybeder
+                actionText = `${actorName} +4 Joker attı! Rakip 4 kart çekti 🔥`;
+            } else if (card.value === 'wild') {
+                actionText = `${actorName} rengi ${getColorTurkish(g.currentColor)} yaptı 🎨`;
+            }
+
+            g.lastActionText = actionText;
+
+            // Kazanma Kontrolü (UNO deme zorunluluğu yok!)
+            if (hand.length === 0) {
+                g.status = 'gameover';
+                g.winner = playerRole;
+                AppState.scores[playerRole] += 1;
+            } else {
+                g.turn = nextTurn;
+            }
+
+            broadcastState({
+                type: 'PLAY',
+                actor: playerRole,
+                card: playedCard
+            });
+        }
+
+        function drawCardsForPlayer(role, count) {
+            const g = AppState.game;
+            for (let i = 0; i < count; i++) {
+                refillDeckIfNeeded();
+                if (g.deck.length > 0) {
+                    g.hands[role].push(g.deck.pop());
+                }
+            }
+        }
+
+        function processDrawCard(playerRole) {
+            const g = AppState.game;
+            if (g.status !== 'playing' || g.turn !== playerRole) return;
+
+            refillDeckIfNeeded();
+            if (g.deck.length === 0) return;
+
+            const drawnCard = g.deck.pop();
+            g.hands[playerRole].push(drawnCard);
+
+            const actorName = playerRole === 'host' ? AppState.myProfile.name : AppState.oppProfile.name;
+            const topCard = g.discardPile[g.discardPile.length - 1];
+
+            // Çekilen kart oynanabilir mi? Oynanamazsa sıra rakibe geçer; oynanabilirse oyuncuda kalır
+            if (!isCardPlayable(drawnCard, topCard, g.currentColor)) {
+                g.turn = playerRole === 'host' ? 'guest' : 'host';
+                g.lastActionText = `${actorName} kart çekti ve sıra geçti.`;
+            } else {
+                g.lastActionText = `${actorName} kart çekti!`;
+            }
+
+            broadcastState({
+                type: 'DRAW',
+                actor: playerRole
+            });
+        }
+
+        function broadcastState(animEvent) {
+            const payload = {
+                type: 'STATE_SYNC',
+                game: AppState.game,
+                scores: AppState.scores,
+                animEvent
+            };
+            sendMessage(payload);
+            applySyncedState(payload);
+        }
+
+        // --- İSTEMCİ VE HOST ORTAK EKRAN GÜNCELLEME + ANİMASYON ---
+        function applySyncedState(payload) {
+            const prevStatus = AppState.game.status;
+            AppState.game = payload.game;
+            if (payload.scores) AppState.scores = payload.scores;
+
+            const myRole = AppState.isHost ? 'host' : 'guest';
+            const anim = payload.animEvent;
+
+            // Animasyonları tetikle
+            if (anim) {
+                if (anim.type === 'PLAY' && anim.card) {
+                    SoundFX.cardPlay();
+                    const fromMe = anim.actor === myRole;
+                    animateCardThrow(anim.card, fromMe);
+                } else if (anim.type === 'DRAW') {
+                    SoundFX.cardSlide();
+                    const toMe = anim.actor === myRole;
+                    animateCardDraw(toMe);
+                } else if (anim.type === 'DEAL') {
+                    SoundFX.cardSlide();
+                }
+            }
+
+            // Arayüzü kısa gecikmeyle veya anında çiz
+            renderGameBoard();
+
+            // Oyun Bitiş Kontrolü
+            if (AppState.game.status === 'gameover') {
+                if (prevStatus !== 'gameover') {
+                    SoundFX.winFanfare();
+                    launchConfetti();
+                }
+                showGameOverModal();
+            } else {
+                els.gameOverModal.classList.add('hidden');
+            }
+        }
+
+        // --- KART GÖRSEL OLUŞTURUCU ---
+        function getCardDisplaySymbol(value) {
+            switch (value) {
+                case 'skip': return '⊘';
+                case 'reverse': return '⇄';
+                case 'draw2': return '+2';
+                case 'wild': return '🎨';
+                case 'wild4': return '+4';
+                default: return value;
+            }
+        }
+
+        function getColorTurkish(color) {
+            const map = { red: 'Kırmızı', blue: 'Mavi', green: 'Yeşil', yellow: 'Sarı', wild: 'Joker' };
+            return map[color] || color;
+        }
+
+        function createCardElement(card, extraClasses = '') {
+            const el = document.createElement('div');
+            const bgClass = `bg-uno-${card.color}`;
+            const textClass = card.color === 'wild' ? 'text-rose-600' : `text-uno-${card.color}`;
+            const symbol = getCardDisplaySymbol(card.value);
+
+            el.className = `uno-card ${extraClasses}`;
+            el.innerHTML = `
+                <div class="uno-card-inner ${bgClass}">
+                    <span class="uno-corner uno-corner-tl">${symbol}</span>
+                    <div class="uno-card-oval">
+                        <span class="uno-card-oval-content ${textClass}">${symbol}</span>
+                    </div>
+                    <span class="uno-corner uno-corner-br">${symbol}</span>
+                </div>
+            `;
+            return el;
+        }
+
+        // --- UÇAN KART ANİMASYONLARI ---
+        function animateCardDraw(toMe) {
+            const drawRect = els.drawPile.getBoundingClientRect();
+            const targetEl = toMe ? els.playerHand : els.opponentHand;
+            const targetRect = targetEl.getBoundingClientRect();
+
+            const clone = document.createElement('div');
+            clone.className = 'uno-card uno-card-back flying-card';
+            clone.innerHTML = `<div class="uno-card-inner"><div class="uno-back-oval"><span class="uno-back-logo">UNO</span></div></div>`;
+            clone.style.left = `${drawRect.left}px`;
+            clone.style.top = `${drawRect.top}px`;
+            document.body.appendChild(clone);
+
+            const dx = (targetRect.left + targetRect.width / 2 - drawRect.width / 2) - drawRect.left;
+            const dy = (targetRect.top + targetRect.height / 2 - drawRect.height / 2) - drawRect.top;
+
+            requestAnimationFrame(() => {
+                clone.style.transform = `translate(${dx}px, ${dy}px) scale(${toMe ? 1 : 0.65}) rotate(${toMe ? 8 : -12}deg)`;
+                clone.style.opacity = '0.85';
+            });
+
+            setTimeout(() => clone.remove(), 480);
+        }
+
+        function animateCardThrow(card, fromMe) {
+            const sourceEl = fromMe ? els.playerHand : els.opponentHand;
+            const sourceRect = sourceEl.getBoundingClientRect();
+            const discardRect = els.discardPile.getBoundingClientRect();
+
+            const clone = createCardElement(card, 'flying-card');
+            const startX = sourceRect.left + sourceRect.width / 2 - discardRect.width / 2;
+            const startY = sourceRect.top + sourceRect.height / 2 - discardRect.height / 2;
+
+            clone.style.left = `${startX}px`;
+            clone.style.top = `${startY}px`;
+            clone.style.transform = `scale(${fromMe ? 1.05 : 0.7}) rotate(${fromMe ? -15 : 15}deg)`;
+            document.body.appendChild(clone);
+
+            const dx = discardRect.left - startX;
+            const dy = discardRect.top - startY;
+
+            requestAnimationFrame(() => {
+                clone.style.transform = `translate(${dx}px, ${dy}px) scale(1) rotate(${card.angle || 0}deg)`;
+            });
+
+            setTimeout(() => clone.remove(), 480);
+        }
+
+        // --- MASA ARAYÜZÜNÜ ÇİZME (RENDER) ---
+        function renderGameBoard() {
+            const g = AppState.game;
+            const myRole = AppState.isHost ? 'host' : 'guest';
+            const oppRole = AppState.isHost ? 'guest' : 'host';
+            const isMyTurn = g.status === 'playing' && g.turn === myRole;
+
+            const myHand = g.hands[myRole] || [];
+            const oppHand = g.hands[oppRole] || [];
+            const topCard = g.discardPile[g.discardPile.length - 1];
+
+            // 1. Sıra ve Profil Göstergeleri
+            if (isMyTurn) {
+                els.turnBanner.textContent = '✨ Sıra Sende! Bir kart oyna veya çek';
+                els.turnBanner.className = 'px-4 py-1 rounded-full bg-rose-500 text-white text-xs font-bold tracking-wide shadow-lg shadow-rose-500/40';
+                els.myProfileBox.classList.add('turn-active-badge', 'border-rose-400');
+                els.opponentProfileBox.classList.remove('turn-active-badge', 'border-rose-400');
+            } else {
+                els.turnBanner.textContent = `⏳ Sıra ${AppState.oppProfile.name}'de...`;
+                els.turnBanner.className = 'px-4 py-1 rounded-full bg-black/45 border border-white/15 text-rose-200/85 text-xs font-semibold tracking-wide';
+                els.opponentProfileBox.classList.add('turn-active-badge', 'border-rose-400');
+                els.myProfileBox.classList.remove('turn-active-badge', 'border-rose-400');
+            }
+
+            // Son 1 Kart Rozetleri (Ceza yok, sadece tatlı bildirim)
+            els.myLastCardBadge.classList.toggle('hidden', myHand.length !== 1);
+            els.oppLastCardBadge.classList.toggle('hidden', oppHand.length !== 1);
+
+            // 2. Rakip Kapalı Kart Yelpazesi
+            els.oppCardCount.textContent = oppHand.length;
+            els.opponentHand.innerHTML = '';
+            const oppCount = oppHand.length;
+            const maxSpreadOpp = Math.min(oppCount * 22, window.innerWidth * 0.72);
+            const stepOpp = oppCount > 1 ? maxSpreadOpp / (oppCount - 1) : 0;
+
+            oppHand.forEach((_, idx) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'uno-card uno-card-back opp-card';
+                cardEl.innerHTML = `<div class="uno-card-inner"><div class="uno-back-oval"><span class="uno-back-logo">UNO</span></div></div>`;
+
+                const offset = oppCount > 1 ? -maxSpreadOpp / 2 + idx * stepOpp : 0;
+                const rot = oppCount > 1 ? ((idx / (oppCount - 1)) - 0.5) * 18 : 0;
+                cardEl.style.position = 'absolute';
+                cardEl.style.transform = `translateX(${offset}px) rotate(${rot}deg)`;
+                els.opponentHand.appendChild(cardEl);
+            });
+
+            // 3. Orta Masa (Çekme Destesi, Aktif Renk & Açık Deste)
+            els.deckCount.textContent = g.deck.length;
+            const hasPlayableInHand = myHand.some(c => isCardPlayable(c, topCard, g.currentColor));
+            if (isMyTurn && !hasPlayableInHand) {
+                els.drawPile.classList.add('draw-pile-highlight');
+            } else {
+                els.drawPile.classList.remove('draw-pile-highlight');
+            }
+
+            // Aktif Renk Etiketi
+            const colorPillStyles = {
+                red: 'bg-rose-600 text-white',
+                blue: 'bg-blue-600 text-white',
+                green: 'bg-emerald-600 text-white',
+                yellow: 'bg-amber-400 text-black'
+            };
+            els.activeColorPill.className = `absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider shadow-md border border-white/30 transition-colors duration-300 ${colorPillStyles[g.currentColor] || 'bg-rose-600 text-white'}`;
+            els.activeColorPill.textContent = `Renk: ${getColorTurkish(g.currentColor)}`;
+
+            // Aksiyon Balonu
+            if (g.lastActionText) {
+                els.actionCallout.textContent = g.lastActionText;
+                els.actionCallout.classList.remove('hidden');
+            } else {
+                els.actionCallout.classList.add('hidden');
+            }
+
+            // Açık Atılan Kart Destesi (Son 4 kartı hafif açılı üst üste göster)
+            els.discardPile.innerHTML = '';
+            const visibleDiscard = g.discardPile.slice(-4);
+            visibleDiscard.forEach((card, index) => {
+                const cEl = createCardElement(card);
+                cEl.style.position = 'absolute';
+                cEl.style.transform = `rotate(${card.angle || 0}deg)`;
+                cEl.style.zIndex = index + 1;
+                els.discardPile.appendChild(cEl);
+            });
+
+            // 4. Oyuncunun Kendi Eli (Yelpaze Düzeni)
+            els.playerHand.innerHTML = '';
+            const count = myHand.length;
+            const availableWidth = Math.min(window.innerWidth - 36, 760);
+            const cardWidth = Math.min(Math.max(58, window.innerWidth * 0.14), 86);
+            const totalIdealWidth = count * (cardWidth * 0.68);
+            const spreadWidth = Math.min(totalIdealWidth, availableWidth - cardWidth);
+            const step = count > 1 ? spreadWidth / (count - 1) : 0;
+
+            myHand.forEach((card, idx) => {
+                const playable = isMyTurn && isCardPlayable(card, topCard, g.currentColor);
+                const cEl = createCardElement(card, `player-hand-card ${playable ? 'playable' : 'unplayable'}`);
+
+                const offsetX = count > 1 ? -spreadWidth / 2 + idx * step : 0;
+                const normPos = count > 1 ? (idx / (count - 1)) - 0.5 : 0;
+                const rot = normPos * Math.min(count * 2.5, 22);
+                const arcY = Math.abs(normPos) * 14;
+
+                cEl.style.position = 'absolute';
+                cEl.style.left = `calc(50% - ${cardWidth / 2}px + ${offsetX}px)`;
+                cEl.style.bottom = `${-arcY}px`;
+                cEl.style.transform = playable
+                    ? `translateY(-14px) rotate(${rot}deg)`
+                    : `rotate(${rot}deg)`;
+                cEl.style.zIndex = idx + 1;
+
+                cEl.addEventListener('click', () => onPlayerCardClick(card, playable));
+                els.playerHand.appendChild(cEl);
+            });
+        }
+
+        // --- KART OYNAMA & ÇEKME ETKİLEŞİMLERİ ---
+        function onPlayerCardClick(card, playable) {
+            const myRole = AppState.isHost ? 'host' : 'guest';
+            if (AppState.game.status !== 'playing' || AppState.game.turn !== myRole) {
+                showToast(`Şu an sıra ${AppState.oppProfile.name}'de! ⏳`);
+                return;
+            }
+            if (!playable) {
+                showToast('Bu kartı masadaki kartın üzerine atamazsın!', 'error');
+                return;
+            }
+
+            // Siyah Joker ise renk seçim penceresini aç
+            if (card.color === 'wild') {
+                AppState.pendingWildCardId = card.id;
+                els.colorPickerModal.classList.remove('hidden');
+                return;
+            }
+
+            executeCardPlay(card.id, null);
+        }
+
+        function executeCardPlay(cardId, chosenColor) {
+            if (AppState.isHost) {
+                processPlayCard('host', cardId, chosenColor);
+            } else {
+                sendMessage({
+                    type: 'ACTION_PLAY_CARD',
+                    cardId,
+                    chosenColor
+                });
+            }
+        }
+
+        // Joker Renk Seçimi Butonları
+        document.querySelectorAll('.color-choice-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const pickedColor = btn.dataset.pickColor;
+                els.colorPickerModal.classList.add('hidden');
+                if (AppState.pendingWildCardId) {
+                    executeCardPlay(AppState.pendingWildCardId, pickedColor);
+                    AppState.pendingWildCardId = null;
+                }
+            });
+        });
+
+        // Çekme Destesine Tıklama
+        els.drawPile.addEventListener('click', () => {
+            const myRole = AppState.isHost ? 'host' : 'guest';
+            if (AppState.game.status !== 'playing' || AppState.game.turn !== myRole) {
+                showToast(`Şu an sıra ${AppState.oppProfile.name}'de! ⏳`);
+                return;
+            }
+
+            if (AppState.isHost) {
+                processDrawCard('host');
+            } else {
+                sendMessage({ type: 'ACTION_DRAW_CARD' });
+            }
+        });
+
+        // --- EMOJİ TEPKİLERİ ---
+        document.querySelectorAll('.reaction-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const emoji = btn.dataset.emoji;
+                SoundFX.emojiPop();
+                spawnFloatingEmoji(emoji, false);
+                sendMessage({ type: 'REACTION', emoji });
+            });
+        });
+
+        function spawnFloatingEmoji(emoji, fromOpponent) {
+            const el = document.createElement('div');
+            el.className = 'floating-reaction';
+            el.textContent = emoji;
+            const randomX = 35 + Math.random() * 30; // Ekran ortasına yakın rastgele yatay konum
+            el.style.left = `${randomX}%`;
+            el.style.top = fromOpponent ? '28%' : '68%';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 2150);
+        }
+
+        // --- OYUN SONU & KONFETİ ---
+        function showGameOverModal() {
+            const myRole = AppState.isHost ? 'host' : 'guest';
+            const oppRole = AppState.isHost ? 'guest' : 'host';
+            const iWon = AppState.game.winner === myRole;
+
+            els.myScoreText.textContent = AppState.scores[myRole];
+            els.oppScoreText.textContent = AppState.scores[oppRole];
+
+            if (iWon) {
+                els.winnerEmoji.textContent = '👑';
+                els.winnerTitle.textContent = 'Kazandın Aşkım!';
+                els.winnerSubtitle.textContent = `${AppState.oppProfile.name} bu eli kaybetti, rövanş ister misin? 💕`;
+            } else {
+                els.winnerEmoji.textContent = AppState.oppProfile.avatar;
+                els.winnerTitle.textContent = `${AppState.oppProfile.name} Kazandı!`;
+                els.winnerSubtitle.textContent = 'Harika oynadı! Hadi yeni bir el daha atalım ❤️';
+            }
+
+            els.gameOverModal.classList.remove('hidden');
+        }
+
+        function launchConfetti() {
+            const colors = ['#f43f5e', '#fbbf24', '#34d399', '#60a5fa', '#f472b6', '#ffffff'];
+            for (let i = 0; i < 45; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = `${Math.random() * 100}vw`;
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.animationDuration = `${2.2 + Math.random() * 2}s`;
+                piece.style.animationDelay = `${Math.random() * 0.5}s`;
+                document.body.appendChild(piece);
+                setTimeout(() => piece.remove(), 4500);
+            }
+        }
+
+        // Tekrar Oyna Butonu
+        els.btnPlayAgain.addEventListener('click', () => {
+            els.gameOverModal.classList.add('hidden');
+            if (AppState.isHost) {
+                startNewGameHost();
+            } else {
+                sendMessage({ type: 'ACTION_RESTART' });
+                showToast('Yeni el başlatılıyor... 💕');
+            }
+        });
+
+        // Ses Aç/Kapa
+        els.btnSoundToggle.addEventListener('click', () => {
+            const on = SoundFX.toggle();
+            els.btnSoundToggle.textContent = on ? '🔊' : '🔇';
+            showToast(on ? 'Ses efektleri açıldı 🔊' : 'Ses efektleri kapatıldı 🔇');
+        });
+
+        // Ekran boyutu değiştiğinde kart yelpazesini yeniden hizala
+        window.addEventListener('resize', () => {
+            if (AppState.game.status === 'playing') {
+                renderGameBoard();
+            }
+        });
+    </script>
 </body>
 </html>
