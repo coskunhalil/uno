@@ -1,0 +1,304 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>İkimizin UNO'su ❤️</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#17152b,#302044);color:white;font-family:Arial,sans-serif;min-height:100vh;text-align:center}
+header{padding:22px;font-size:25px;font-weight:bold;color:#ffcfdf}
+.panel{background:#ffffff12;border:1px solid #ffffff25;border-radius:18px;padding:22px;margin:18px auto;max-width:520px}
+input{padding:13px;border:0;border-radius:10px;margin:6px;width:90%;max-width:330px;font-size:16px}
+button{border:0;border-radius:10px;padding:12px 18px;margin:5px;background:#ff6292;color:white;font-size:15px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:hover{filter:brightness(1.12)}
+#game{display:none}
+#status{font-size:19px;margin:15px}
+#table{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:20px}
+.card{width:65px;height:94px;border:3px solid white;border-radius:11px;color:white;font-size:23px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:2px 4px 8px #0008;cursor:pointer}
+.card:disabled{cursor:default}
+.red{background:#e83e50}.blue{background:#287ce4}
+.green{background:#23a76a}.yellow{background:#e8b82b;color:#222}
+.wild{background:linear-gradient(135deg,#e83e50 25%,#287ce4 25% 50%,#23a76a 50% 75%,#e8b82b 75%)}
+.hand{display:flex;justify-content:center;flex-wrap:wrap;gap:5px;padding:10px}
+.hand .card{width:57px;height:83px;font-size:19px}
+.hand .card:hover{transform:translateY(-10px)}
+.small{color:#c8bdd5;font-size:13px}
+#message{min-height:25px;color:#ffd2e1}
+</style>
+</head>
+<body>
+<header>❤️ İKİMİZİN UNO'SU ❤️</header>
+
+<div id="lobby" class="panel">
+<h2>Birlikte UNO oynayalım!</h2>
+<input id="name" placeholder="Senin ismin">
+<input id="room" placeholder="Oda adı (ör. askimiz123)">
+<div>
+<button onclick="createRoom()">Oda Oluştur</button>
+<button onclick="joinRoom()">Odaya Katıl</button>
+</div>
+<p class="small">Bir kişi oda oluşturur. Diğeri aynı oda adını girerek katılır.</p>
+<p id="connection">Bağlantı bekleniyor...</p>
+</div>
+
+<div id="game">
+<div class="panel">
+<div id="status">Oyun bekleniyor...</div>
+<div id="message"></div>
+<div id="opponent"></div>
+<div id="table"></div>
+<div class="small">Ortadaki kart</div>
+<button onclick="drawCard()" id="draw">Kart Çek</button>
+</div>
+<div class="panel">
+<h3 id="mytitle">Senin kartların</h3>
+<div id="hand" class="hand"></div>
+<div class="small" id="turn"></div>
+</div>
+<button onclick="startGame()" id="start" style="display:none">Oyunu Başlat 🎮</button>
+</div>
+
+<script>
+let peer,conn,host=false,me="",roomId="";
+let state=null;
+let connected=false;
+
+const $=id=>document.getElementById(id);
+function say(t){$("message").textContent=t}
+function roomKey(){
+ return "uno-"+$("room").value.trim().toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,30);
+}
+function setup(){
+ me=$("name").value.trim();
+ roomId=roomKey();
+ if(!me||!roomId){alert("İsim ve oda adı gerekli!");return false}
+ return true;
+}
+function createRoom(){
+ if(!setup())return;
+ host=true;
+ $("connection").textContent="Oda oluşturuluyor...";
+ peer=new Peer(roomId);
+ peer.on("open",()=>{
+  $("connection").textContent="Oda hazır! Sevgilini bekliyorsun ❤️";
+ });
+ peer.on("connection",c=>{
+  if(conn){c.close();return}
+  conn=c;
+  setupConnection();
+ });
+ peer.on("error",e=>{
+  $("connection").textContent=e.type==="unavailable-id"?"Bu oda adı kullanımda. Başka bir ad deneyin.": "Bağlantı hatası: "+e.type;
+ });
+}
+function joinRoom(){
+ if(!setup())return;
+ host=false;
+ $("connection").textContent="Odaya bağlanılıyor...";
+ peer=new Peer();
+ peer.on("open",()=>{
+  conn=peer.connect(roomId,{reliable:true});
+  setupConnection();
+ });
+ peer.on("error",e=>$("connection").textContent="Bağlantı hatası: "+e.type);
+}
+function setupConnection(){
+ conn.on("open",()=>{
+  connected=true;
+  conn.send({type:"hello",name:me});
+  $("lobby").style.display="none";
+  $("game").style.display="block";
+  $("connection").textContent="Bağlandı!";
+  if(host) say("Sevgilin bağlandı! Oyunu başlatabilirsin ❤️");
+ });
+ conn.on("data",msg=>{
+  if(host)hostMessage(msg);
+  else if(msg.type==="state"){
+   state=msg.state;
+   render();
+  }else if(msg.type==="notice")say(msg.text);
+ });
+ conn.on("close",()=>say("Bağlantı kesildi."));
+}
+function send(obj){if(conn&&connected)conn.send(obj)}
+
+function makeDeck(){
+ let d=[],id=0;
+ const colors=["red","blue","green","yellow"];
+ for(let c of colors){
+  d.push({id:id++,color:c,value:"0"});
+  for(let n=1;n<=9;n++)for(let k=0;k<2;k++)d.push({id:id++,color:c,value:String(n)});
+  for(let v of ["+2","Pas","Ters"])for(let k=0;k<2;k++)d.push({id:id++,color:c,value:v});
+ }
+ for(let i=0;i<4;i++){
+  d.push({id:id++,color:"wild",value:"Renk"});
+  d.push({id:id++,color:"wild",value:"+4"});
+ }
+ return shuffle(d);
+}
+function shuffle(a){
+ for(let i=a.length-1;i>0;i--){
+  let j=Math.floor(Math.random()*(i+1));
+  [a[i],a[j]]=[a[j],a[i]];
+ }
+ return a;
+}
+function startGame(){
+ if(!host||!connected)return;
+ let deck=makeDeck();
+ state={
+  names:[me,""],hands:[[],[]],deck,discard:[],
+  current:0,direction:1,color:null,over:false
+ };
+ for(let i=0;i<7;i++){
+  state.hands[0].push(state.deck.pop());
+  state.hands[1].push(state.deck.pop());
+ }
+ let first=state.deck.pop();
+ while(first.color==="wild"){
+  state.deck.unshift(first);
+  first=state.deck.pop();
+ }
+ state.discard.push(first);
+ state.color=first.color;
+ publish();
+}
+function hostMessage(m){
+ if(m.type==="hello"){
+  state=state||null;
+  if(state)state.names[1]=m.name;
+  else waitingName=m.name;
+  if(state)publish();
+  else say(m.name+" bağlandı! Oyunu başlatabilirsin ❤️");
+ }
+ if(m.type==="action"&&state&&!state.over){
+  if(state.names[1]!==null && m.player===1)action(1,m.action,m.card,m.color);
+ }
+}
+let waitingName="";
+function publish(){
+ if(!state)return;
+ let s=state;
+ if(conn){
+  conn.send({type:"state",state:privateState(1)});
+ }
+ render();
+}
+function privateState(player){
+ return {
+  names:state.names,
+  hand:state.hands[player],
+  opponentCount:state.hands[1-player].length,
+  top:state.discard[state.discard.length-1],
+  current:state.current,color:state.color,
+  over:state.over,winner:state.winner,
+  deckCount:state.deck.length
+ };
+}
+function action(player,kind,cardId,color){
+ if(!host)return;
+ if(state.over||state.current!==player)return;
+ let hand=state.hands[player];
+ if(kind==="draw"){
+  if(!state.deck.length)reshuffle();
+  if(state.deck.length)hand.push(state.deck.pop());
+  state.current=1-player;
+  say(state.names[player]+" kart çekti.");
+  publish();
+  return;
+ }
+ let i=hand.findIndex(c=>c.id===cardId);
+ if(i<0)return;
+ let card=hand[i],top=state.discard[state.discard.length-1];
+ if(card.color!=="wild"&&card.color!==state.color&&card.value!==top.value)return;
+ if(card.color==="wild"&&!["red","blue","green","yellow"].includes(color))return;
+ hand.splice(i,1);
+ state.discard.push(card);
+ state.color=card.color==="wild"?color:card.color;
+ let next=1-player;
+ if(card.value==="+2"||card.value==="+4"){
+  let count=card.value==="+2"?2:4;
+  for(let j=0;j<count;j++){
+   if(!state.deck.length)reshuffle();
+   if(state.deck.length)state.hands[next].push(state.deck.pop());
+  }
+  say(state.names[player]+" "+card.value+" oynadı!");
+ }else if(card.value==="Pas"||card.value==="Ters"){
+  say(state.names[player]+" "+card.value+" oynadı!");
+ }else{
+  say(state.names[player]+" kart oynadı.");
+  state.current=next;
+ }
+ if(card.color==="wild")say("Yeni renk: "+color);
+ if(hand.length===0){
+  state.over=true;
+  state.winner=state.names[player];
+  say("🎉 "+state.winner+" kazandı!");
+ }
+ publish();
+}
+function reshuffle(){
+ if(state.discard.length<=1)return;
+ let top=state.discard.pop();
+ state.deck=shuffle(state.discard);
+ state.discard=[top];
+}
+function play(id){
+ if(!state||state.over)return;
+ if(host){
+  if(state.current!==0)return;
+  let c=state.hands[0].find(x=>x.id===id);
+  if(!c)return;
+  let color=c.color==="wild"?prompt("Renk seç: red, blue, green, yellow","red"):null;
+  if(c.color==="wild"&&!["red","blue","green","yellow"].includes(color))return;
+  action(0,"play",id,color);
+ }else{
+  let c=state.hand.find(x=>x.id===id);
+  if(!c)return;
+  let color=c.color==="wild"?prompt("Renk seç: red, blue, green, yellow","red"):null;
+  if(c.color==="wild"&&!["red","blue","green","yellow"].includes(color))return;
+  send({type:"action",player:1,action:"play",card:id,color});
+ }
+}
+function drawCard(){
+ if(!state||state.over)return;
+ if(host){
+  if(state.current===0)action(0,"draw");
+ }else send({type:"action",player:1,action:"draw"});
+}
+function render(){
+ if(!state)return;
+ let hand=host?state.hands[0]:state.hand;
+ let current=state.current;
+ $("status").textContent=state.over?
+  "🏆 "+state.winner+" kazandı!":
+  (current===(host?0:1)?"Sıra sende! 🎮":"Rakibinin sırası...");
+ $("opponent").textContent=
+  (host?state.names[1]:state.names[0])+" · "+(host?state.hands[1].length:state.opponentCount)+" kart";
+ let top=host?state.discard[state.discard.length-1]:state.top;
+ if(!top)return;
+ $("table").innerHTML="";
+ let el=document.createElement("div");
+ el.className="card "+(top.color==="wild"?"wild":top.color);
+ el.textContent=top.value;
+ $("table").appendChild(el);
+ $("table").insertAdjacentHTML("beforeend","<div style='width:100%;font-size:14px'>Aktif renk: "+state.color+"</div>");
+ $("hand").innerHTML="";
+ hand.forEach(c=>{
+  let b=document.createElement("button");
+  b.className="card "+(c.color==="wild"?"wild":c.color);
+  b.textContent=c.value;
+  b.disabled=state.over||current!==(host?0:1);
+  b.onclick=()=>play(c.id);
+  $("hand").appendChild(b);
+ });
+ $("turn").textContent="Kart sayın: "+hand.length+" | UNO demek zorunda değilsin ❤️";
+ $("draw").disabled=state.over||current!==(host?0:1);
+}
+</script>
+</body>
+</html>
